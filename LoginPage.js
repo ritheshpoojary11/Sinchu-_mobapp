@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -6,38 +6,55 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-} from 'react-native';
+  ActivityIndicator,
+} from "react-native";
+import { get, child, ref } from "firebase/database";
+import { database } from "./firebase_config";
 
 const LoginPage = ({ navigation }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const validateEmail = (email) => {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return regex.test(email);
   };
 
-  const handleSubmit = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Both fields are required.');
+      Alert.alert("Error", "Both fields are required.");
       return;
     }
 
     if (!validateEmail(email)) {
-      Alert.alert('Error', 'Please enter a valid email address.');
+      Alert.alert("Error", "Please enter a valid email address.");
       return;
     }
 
-    navigation.navigate('Home');
-  };
+    setLoading(true);
+    try {
+      const userRef = child(ref(database), `public_users/${email.replace(/\./g, "_")}`);
+      const snapshot = await get(userRef);
 
-  const handleForgotPassword = () => {
-    Alert.alert('Forgot Password', 'Redirecting to forgot password page...');
-
-  };
-
-  const handleAlreadyUser = () => {
-    Alert.alert('Redirecting', 'Redirecting to the signup page...');
+      if (snapshot.exists()) {
+        const userData = snapshot.val();
+        
+        if (userData.password === password) {
+          Alert.alert("Success", "Logged in successfully!");
+          navigation.navigate("Home", { email: userData.email });
+        } else {
+          Alert.alert("Error", "Incorrect password. Please try again.");
+        }
+      } else {
+        Alert.alert("Error", "User not found. Please sign up first.");
+      }
+    } catch (error) {
+      Alert.alert("Error", "Something went wrong. Please try again.");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -61,74 +78,62 @@ const LoginPage = ({ navigation }) => {
         secureTextEntry
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-        <Text style={styles.buttonText}>Submit</Text>
+      <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Login</Text>}
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+      <TouchableOpacity onPress={() => navigation.navigate("ForgotPassword")}>
         <Text style={styles.link}>Forgot Password?</Text>
       </TouchableOpacity>
 
-
       <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
-       <Text style={styles.link}>Not a user? Sign up</Text>
+        <Text style={styles.link}>Not a user? Sign up</Text>
       </TouchableOpacity>
-
     </View>
   );
 };
-
-const HomePage = () => {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome to Home Page</Text>
-    </View>
-  );
-};
-
-
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 40,
-    color: '#333',
+    color: "#333",
   },
   input: {
-    width: '100%',
+    width: "100%",
     height: 50,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: "#ccc",
     borderRadius: 8,
     paddingHorizontal: 15,
     marginBottom: 20,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   button: {
-    width: '100%',
+    width: "100%",
     height: 50,
-    backgroundColor: '#007BFF',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#007BFF",
+    justifyContent: "center",
+    alignItems: "center",
     borderRadius: 8,
     marginTop: 10,
   },
   buttonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   link: {
     marginTop: 20,
-    color: '#007BFF',
+    color: "#007BFF",
     fontSize: 16,
   },
 });

@@ -11,31 +11,61 @@ import {
 import { useForm, Controller } from "react-hook-form";
 import * as Yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
-
+import { get, child, ref, set } from "firebase/database";
+import { database } from "./firebase_config";
 const SignUpPage = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
 
   // Validation Schema
   const validationSchema = Yup.object().shape({
-    username: Yup.string().min(3, "Username must be at least 3 characters").required("Username is required"),
-    email: Yup.string().email("Invalid email format").required("Email is required"),
-    password: Yup.string().min(6, "Password must be at least 6 characters").required("Password is required"),
+    username: Yup.string()
+      .min(3, "Username must be at least 3 characters")
+      .required("Username is required"),
+    email: Yup.string()
+      .email("Invalid email format")
+      .required("Email is required"),
+    password: Yup.string()
+      .min(6, "Password must be at least 6 characters")
+      .required("Password is required"),
     confirmPassword: Yup.string()
       .oneOf([Yup.ref("password")], "Passwords must match")
       .required("Confirm Password is required"),
   });
 
-  const { control, handleSubmit, formState: { errors } } = useForm({
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
     resolver: yupResolver(validationSchema),
   });
 
-  const onSubmit = (data) => {
+  const onSubmit = async (data) => {
     setLoading(true);
-    setTimeout(() => {
+    
+    try {
+      const userRef = ref(database, `public_users/${data.email.replace(/\./g, "_")}`);
+
+      const snapshot = await get(child(ref(database), `public_users/${data.email.replace(/\./g, "_")}`));
+
+      if (snapshot.exists()) {
+        Alert.alert("Error", "This email is already registered. Please log in or use a different email.");
+      } else {
+        await set(userRef, {
+          username: data.username,
+          email: data.email,
+          password: data.password, // ⚠️ Storing passwords in plain text is NOT recommended!
+        });
+
+        Alert.alert("Success", "Signup successful!");
+        navigation.navigate("Home", { email: data.email });
+      }
+    } catch (error) {
+      Alert.alert("Error", "Something went wrong. Please try again.");
+      console.error(error);
+    } finally {
       setLoading(false);
-      Alert.alert("Success", "Account created successfully!");
-      navigation.navigate("Login"); // Navigate to Login after success
-    }, 2000);
+    }
   };
 
   return (

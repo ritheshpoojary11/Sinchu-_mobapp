@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 
-const HomePage = () => {
+const HomePage = ({navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const services = [
     { id: 1, name: 'Plumbing', icon: 'tools' },
