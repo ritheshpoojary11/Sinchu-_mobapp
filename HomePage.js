@@ -56,7 +56,7 @@ const HomePage = ({navigation }) => {
       <View style={styles.searchBar}>
         <Ionicons name="search" size={20} color="#888" />
         <TextInput
-          placeholder="What are you looking for?"
+          placeholder="What are you looking for?."
           style={styles.searchInput}
         />
       </View>
